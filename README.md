@@ -1,0 +1,5 @@
+# micro_reticulation
+ESPhome files and additonal information on the basic reticulation controller
+The micro-reticulation contorller is designed to be small and simple to use, frequenty households have controllers install that are around $300 and have way to many features that are not used and make it complicated to use. I have found most people only use upto 3 zones and a master solenoid at most. So I designed a small simple controller that would work with Home Assisant and could also be used to retrofit into an existing old school controller if you already have one to save on the need to buy a case or 24v transformer to run everything.
+I have called it a few names but have setted on Micro Reticulation controller.  Eventually I would like to make it use able stand alone off WIFI entirely  or with Home Assistant. Stand alone it would operate via Bluetooth with an App and it's time would come from a RTC with would be set once connected to WIFI
+But first I would like it to work with Home Assisant nicely then I will work on stand alone.
