@@ -1,68 +1,194 @@
 #Change these substitution to suit your requirements
 substitutions:
-  name: "micro-retic" #Name of device on network
-  
+  device_name: "micro-retic" #Name of device on network
+  relay_1_name: "Main"
+  relay_2_name: "Station 1"
+  relay_3_name: "Station 2"
+  relay_4_name: "Station 3"
+  photo_transistor: "Retic Light Sensor"
+  duration_1: "Station 1 Duration"
+  duration_2: "Station 2 Duration"
+  duration_3: "Station 3 Duration"
 esphome:
-  name: "${name}"
+  name: "${device_name}"
   name_add_mac_suffix: true
   project:
-    name: jimmy.micro_retic
+    name: jimmy.micro_reticulation
     version: "0.1"
+  on_boot:
+    then:
+      ds1307.read_time:
 
 esp8266:
   board: esp8285
 
-# Enable logging
 logger:
 
-# Enable Home Assistant API
 api:
+  reboot_timeout: 0s
 
 ota:
-
+  
 dashboard_import:
   package_import_url: github://jeggleston1981/micro_reticulation/micro.yaml@v1
-  
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
 
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
+wifi:
   ap:
     password: "password"
+  reboot_timeout: 0s
 
 captive_portal:
 
+i2c:
+  sda: 4
+  scl: 5
+  scan: true
+  id: bus_a
+time:
+  - platform: ds1307
+    id: ds3231_time
+    timezone: Australia/Perth
+    on_time:
+      - seconds: 0
+        minutes: 0
+        hours: 1
+        days_of_week: MON-SUN
+        then:
+           - switch.toggle: restart_switch
+  - platform: homeassistant
+      on_time_sync:
+        then:
+          ds1307.write_time:
+
 switch:
+  - platform: restart
+    name: "Reticulation Restart"
+    id: restart_switch
   - platform: gpio
-    name: "Station 1"
+    name: "${relay_1_name}"
     id: station1
     pin:
       number: 14
       inverted: false
   - platform: gpio
-    name: "Station 2"
+    name: "${relay_2_name}"
     id: station2
     pin:
       number: 12
       inverted: false
   - platform: gpio
-    name: "Station 3"
+    name: "${relay_3_name}"
     id: station3
     pin:
-      number: 5
+      number: 10
       inverted: false
   - platform: gpio
-    name: "Station 4"
+    name: "${relay_4_name}"
     id: station4
     pin:
-      number: 4
+      number: 9
       inverted: false
 binary_sensor:
   - platform: gpio
-    name: "Retic Light Sensor"
+    name: "${photo_transistor}"
     pin:
       number: 13
       inverted: true
     filters:
       - delayed_on_off: 10s
+################Zone Durations in Minutes###################
+#Station 1 Duration
+number:
+  - platform: template
+    name: "${duration_1}"
+    id: s1_duration
+    icon: mdi:timer-sand
+    optimistic: true
+    initial_value: 0
+    restore_value: true
+    min_value: 0
+    max_value: 60
+    step: 1
+#Station 2 Duration    
+  - platform: template
+    name: "${duration_2}"
+    id: s2_duration
+    icon: mdi:timer-sand
+    optimistic: true
+    initial_value: 0
+    restore_value: true
+    min_value: 0
+    max_value: 60
+    step: 1
+#Station 3 Duration    
+  - platform: template
+    name: "${duration_3}"
+    id: s3_duration
+    icon: mdi:timer-sand
+    optimistic: true
+    initial_value: 0
+    restore_value: true
+    min_value: 0
+    max_value: 60
+    step: 1
+interval:
+  - interval: 5s
+    then:
+      - lambda: |-
+          if (id(remaining_time1) > 0) {
+            // Store the previous time.
+            id(remaining_time1_previous) = id(remaining_time1);
+            // When the relay is on.
+            if (id(station1).state) {
+              // Decrement the timer.
+              id(remaining_time1) -= 5;
+              // Turn off the relay when the time reaches zero... or the remaining time fails a sanity check!
+              //if (id(remaining_time1) <= 0 || id(irrigation_zone1_remaining).state > id(irrigation_zone1_duration).state){
+              if (id(remaining_time1) <= 0) {
+                id(station1).turn_off();
+                id(remaining_time1) = 0;
+              }
+            }
+            // Update the remaining time display.
+            if (id(remaining_time1_previous) != id(remaining_time1)) {
+              id(irrigation_zone1_remaining).publish_state( (id(remaining_time1)/60) + 1 );
+            }
+          }
+          if (id(remaining_time2) > 0) {
+            // Store the previous time.
+            id(remaining_time2_previous) = id(remaining_time2);
+            // When the relay is on.
+            if (id(station2).state) {
+              // Decrement the timer.
+              id(remaining_time2) -= 5;
+              // Turn off the relay when the time reaches zero... or the remaining time fails a sanity check!
+              //if (id(remaining_time2) <= 0 || id(irrigation_zone2_remaining).state > id(irrigation_zone2_duration).state){
+              if (id(remaining_time2) <= 0) {
+                id(station2).turn_off();
+                id(remaining_time2) = 0;
+              }
+            }
+            // Update the remaining time display.
+            if (id(remaining_time2_previous) != id(remaining_time2)) {
+              id(irrigation_zone2_remaining).publish_state( (id(remaining_time2)/60) + 1 );
+            }
+          }
+          if (id(remaining_time3) > 0) {
+            // Store the previous time.
+            id(remaining_time3_previous) = id(remaining_time3);
+            // When the relay is on.
+            if (id(station3).state) {
+              // Decrement the timer.
+              id(remaining_time3) -= 5;
+              // Turn off the relay when the time reaches zero... or the remaining time fails a sanity check!
+              //if (id(remaining_time3) <= 0 || id(irrigation_zone3_remaining).state > id(irrigation_zone3_duration).state){
+              if (id(remaining_time3) <= 0) {
+                id(station3).turn_off();
+                id(remaining_time3) = 0;
+              }
+            }
+            // Update the remaining time display.
+            if (id(remaining_time3_previous) != id(remaining_time3)) {
+              id(irrigation_zone3_remaining).publish_state( (id(remaining_time3)/60) + 1 );
+            }
+          }
