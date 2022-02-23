@@ -1,0 +1,430 @@
+#Change these substitution to suit your requirements, they will be the names of 
+#the entities in Home Assistant
+substitutions:
+  device_name: "micro-retic"#Name of device on network, MAC suffix will be added
+  relay_1_name: "Main"
+  relay_2_name: "Station 1"
+  relay_3_name: "Station 2"
+  relay_4_name: "Station 3"
+  photo_transistor: "Retic Light Sensor"
+  duration_1: "Station 1 Duration"
+  duration_2: "Station 2 Duration"
+  duration_3: "Station 3 Duration"
+  remaining_1: "Station 1 Remaining"
+  remaining_2: "Station 2 Remaining"
+  remaining_3: "Station 3 Remaining"
+
+esphome:
+  name: "${device_name}"
+  name_add_mac_suffix: true
+  project:
+    name: jimmy.micro_reticulation
+    version: "0.1"
+  on_boot:
+    priority: -100
+    then:
+      - ds1307.read_time:
+      - text_sensor.template.publish:
+          id: status
+          state: "Standby"
+
+
+esp8266:
+  board: esp8285
+
+logger:
+
+
+api:
+  reboot_timeout: 0s
+
+ota:
+
+dashboard_import:
+  package_import_url: github://jeggleston1981/micro_reticulation/micro.yaml@v1
+
+wifi:
+  ap:
+    password: "password"
+  reboot_timeout: 0s
+  
+captive_portal:
+
+i2c:
+  sda: 4
+  scl: 5
+  scan: true
+  id: bus_a
+
+time:
+  - platform: ds1307
+    id: ds3231_time
+    timezone: Australia/Perth
+    on_time:
+      - seconds: 0
+        minutes: 0
+        hours: 1
+        days_of_week: MON-SUN
+        then:
+           - switch.toggle: restart_switch
+  - platform: homeassistant
+    on_time_sync:
+      then:
+        ds1307.write_time:
+
+globals:
+  # ============================================================================= #
+  # Irrigation time remaining
+  - id: remaining_time1
+    type: int
+    restore_value: no
+    initial_value: "300"
+  - id: remaining_time2
+    type: int
+    restore_value: no
+    initial_value: "300"
+  - id: remaining_time3
+    type: int
+    restore_value: no
+    initial_value: "300"
+
+  # ============================================================================= #
+  # Store previous values to verify change.
+  - id: remaining_time1_previous
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: remaining_time2_previous
+    type: int
+    restore_value: no
+    initial_value: "0"
+  - id: remaining_time3_previous
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+switch:
+
+  - platform: restart
+    name: "Reticulation Restart"
+    id: restart_switch
+#Virtual Switches so that a channel can be turned off with duration of 0
+  - platform: template
+    name: "${relay_2_name}"
+    id: irrigation_zone1
+    lambda: return id(station1).state;
+    optimistic: true
+    turn_on_action:
+      # Turn on if not disabled.
+      if:
+        condition:
+          and:
+            - lambda: return id(s1_duration) > 0;
+            - switch.is_off: rain
+        then:
+          - switch.turn_on: station1
+          - switch.turn_on: main
+    turn_off_action:
+      - switch.turn_off: station1
+      - switch.turn_off: main
+
+  - platform: template
+    name: "${relay_3_name}"
+    id: irrigation_zone2
+    lambda: return id(station2).state;
+    optimistic: true
+    turn_on_action:
+      # Turn on if not disabled.
+      if:
+        condition:
+          and:
+            - lambda: return id(s2_duration) > 0;
+            - switch.is_off: rain
+        then:
+          - switch.turn_on: station2
+          - switch.turn_on: main
+    turn_off_action:
+      - switch.turn_off: station2
+      - switch.turn_off: main
+
+  - platform: template
+    name: "${relay_4_name}"
+    id: irrigation_zone3
+    lambda: return id(station3).state;
+    optimistic: true
+    turn_on_action:
+      # Turn on if not disabled.
+      if:
+        condition:
+          and:
+            - lambda: return id(s3_duration) > 0;
+            - switch.is_off: rain
+        then:
+          - switch.turn_on: station3
+          - switch.turn_on: main
+    turn_off_action:
+      - switch.turn_off: station3
+      - switch.turn_off: main
+  - platform: template
+    name: "Rain"
+    id: rain
+    optimistic: true
+    
+#Real Solenoid relay outputs
+  - platform: gpio
+    name: "${relay_1_name}"
+    restore_mode: ALWAYS_OFF
+    id: main
+    pin:
+      number: 14
+      inverted: false
+  - platform: gpio
+    restore_mode: ALWAYS_OFF
+    id: station1
+    pin:
+      number: 12
+      inverted: false
+    on_turn_on:
+      then:
+        # Start the countdown timer.
+        - globals.set:
+            id: remaining_time1
+            value: !lambda return id(s1_duration).state * 60;
+        - sensor.template.publish:
+            id: remaining1
+            state: !lambda return id(s1_duration).state;
+        - text_sensor.template.publish:
+            id: status
+            state: "Run"
+    on_turn_off:
+      then:
+        - sensor.template.publish:
+            id: remaining1
+            state: "0"
+        - text_sensor.template.publish:
+            id: status
+            state: "Standby"
+  - platform: gpio
+    restore_mode: ALWAYS_OFF
+    id: station2
+    pin:
+      number: 10
+      inverted: false
+    on_turn_on:
+      then:
+        # Start the countdown timer.
+        - globals.set:
+            id: remaining_time2
+            value: !lambda return id(s2_duration).state * 60;
+        - sensor.template.publish:
+            id: remaining2
+            state: !lambda return id(s2_duration).state;
+        - text_sensor.template.publish:
+            id: status
+            state: "Run"
+    on_turn_off:
+      then:
+        - sensor.template.publish:
+            id: remaining2
+            state: "0"
+        - text_sensor.template.publish:
+            id: status
+            state: "Standby"
+  - platform: gpio
+    restore_mode: ALWAYS_OFF
+    id: station3
+    pin:
+      number: 9
+      inverted: false
+    on_turn_on:
+      then:
+        # Start the countdown timer.
+        - globals.set:
+            id: remaining_time3
+            value: !lambda return id(s3_duration).state * 60;
+        - sensor.template.publish:
+            id: remaining3
+            state: !lambda return id(s3_duration).state;
+        - text_sensor.template.publish:
+            id: status
+            state: "Run"
+    on_turn_off:
+      then:
+        - sensor.template.publish:
+            id: remaining3
+            state: "0"
+        - text_sensor.template.publish:
+            id: status
+            state: "Standby"
+text_sensor:
+  - platform: template
+    name: "Status"
+    id: status
+    disabled_by_default: true
+
+binary_sensor:
+  - platform: gpio
+    name: "Retic Light Sensor"
+    disabled_by_default: true
+    pin:
+      number: 13
+      inverted: true
+    filters:
+      - delayed_on_off: 10s
+####################################################
+#Station 1 Duration
+number:
+  - platform: template
+    name: "${duration_1}"
+    id: s1_duration
+    #id: ui_zone1_duration
+    icon: mdi:timer-sand
+    optimistic: true
+    initial_value: 10
+    restore_value: true
+    min_value: 0
+    max_value: 60
+    step: 1
+ 
+#Station 2 Duration    
+  - platform: template
+    name: "${duration_2}"
+    id: s2_duration
+    #id: ui_zone1_duration
+    icon: mdi:timer-sand
+    optimistic: true
+    initial_value: 10
+    restore_value: true
+    min_value: 0
+    max_value: 60
+    step: 1
+
+#Station 3 Duration    
+  - platform: template
+    name: "${duration_3}"
+    id: s3_duration
+    #id: ui_zone1_duration
+    icon: mdi:timer-sand
+    optimistic: true
+    initial_value: 10
+    restore_value: true
+    min_value: 0
+    max_value: 60
+    step: 1
+
+sensor:
+  - platform: uptime
+    name: "Reticulation Uptime"
+    disabled_by_default: true
+  - platform: template
+    name: "${remaining_1}"
+    id: remaining1
+    lambda: "return 0;"
+    accuracy_decimals: 0
+    unit_of_measurement: minutes
+    icon: mdi:timer-outline
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: return id(remaining_time1) == 0;
+            then:
+              - switch.turn_off: station1
+              - switch.turn_off: main
+
+  - platform: template
+    name: "${remaining_2}"
+    id: remaining2
+    lambda: "return 0;"
+    accuracy_decimals: 0
+    unit_of_measurement: minutes
+    icon: mdi:timer-outline
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: return id(remaining_time2) == 0;
+            then:
+              - switch.turn_off: station2
+              - switch.turn_off: main
+
+  - platform: template
+    name: "${remaining_3}"
+    id: remaining3
+    lambda: "return 0;"
+    accuracy_decimals: 0
+    unit_of_measurement: minutes
+    icon: mdi:timer-outline
+    on_value:
+      then:
+        - if:
+            condition:
+              lambda: return id(remaining_time3) == 0;
+            then:
+              - switch.turn_off: station3
+              - switch.turn_off: main
+
+interval:
+  - interval: 5s
+    then:
+      - lambda: |-
+          if (id(remaining_time1) > 0) {
+            // Store the previous time.
+            id(remaining_time1_previous) = id(remaining_time1);
+            // When the relay is on.
+            if (id(station1).state) {
+              // Decrement the timer.
+              id(remaining_time1) -= 5;
+              // Turn off the relay when the time reaches zero... or the remaining time fails a sanity check!
+              //if (id(remaining_time1) <= 0 || id(remaining1).state > id(s1_duration).state){
+              if (id(remaining_time1) <= 0) {
+                id(station1).turn_off();
+                id(main).turn_off();
+                id(remaining_time1) = 0;
+              }
+            }
+            // Update the remaining time display.
+            if (id(remaining_time1_previous) != id(remaining_time1)) {
+              id(remaining1).publish_state( (id(remaining_time1)/60) + 1 );
+            }
+          }
+          if (id(remaining_time2) > 0) {
+            // Store the previous time.
+            id(remaining_time2_previous) = id(remaining_time2);
+            // When the relay is on.
+            if (id(station2).state) {
+              // Decrement the timer.
+              id(remaining_time2) -= 5;
+              // Turn off the relay when the time reaches zero... or the remaining time fails a sanity check!
+              //if (id(remaining_time2) <= 0 || id(remaining2).state > id(s2_duration).state){
+              if (id(remaining_time2) <= 0) {
+                id(station2).turn_off();
+                id(main).turn_off();
+                id(remaining_time2) = 0;
+              }
+            }
+            // Update the remaining time display.
+            if (id(remaining_time2_previous) != id(remaining_time2)) {
+              id(remaining2).publish_state( (id(remaining_time2)/60) + 1 );
+            }
+          }
+          if (id(remaining_time3) > 0) {
+            // Store the previous time.
+            id(remaining_time3_previous) = id(remaining_time3);
+            // When the relay is on.
+            if (id(station3).state) {
+              // Decrement the timer.
+              id(remaining_time3) -= 5;
+              // Turn off the relay when the time reaches zero... or the remaining time fails a sanity check!
+              //if (id(remaining_time3) <= 0 || id(remaining3).state > id(s3_duration).state){
+              if (id(remaining_time3) <= 0) {
+                id(station3).turn_off();
+                id (main).turn_off();
+                id(remaining_time3) = 0;
+              }
+            }
+            // Update the remaining time display.
+            if (id(remaining_time3_previous) != id(remaining_time3)) {
+              id(remaining3).publish_state( (id(remaining_time3)/60) + 1 );
+            }
+          }
