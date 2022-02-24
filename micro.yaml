@@ -6,7 +6,7 @@ substitutions:
   relay_2_name: "Station 1"
   relay_3_name: "Station 2"
   relay_4_name: "Station 3"
-  photo_transistor: "Retic Light Sensor"
+  photo_transistor: "Retic Light Sensor" #Disable by default in HA
   duration_1: "Station 1 Duration"
   duration_2: "Station 2 Duration"
   duration_3: "Station 3 Duration"
