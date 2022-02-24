@@ -41,7 +41,7 @@ api:
 ota:
 
 dashboard_import:
-  package_import_url: github://jeggleston1981/micro_reticulation/micro.yaml@v1
+  package_import_url: github://jeggleston1981/micro_reticulation/micro.yaml@v0.1
 
 wifi:
   ap:
