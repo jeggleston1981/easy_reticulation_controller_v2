@@ -34,3 +34,5 @@ The Device can of course be reprogrammed as you would like too, if you have ESPh
 - Web dash-board for standalone usage
 - Integration for Home Assistant 
 - Lorawan integration for remote or rental property
+# Hardware
+The PCB design files can be found here https://easyeda.com/james_6977/basic-retic-controller_copy 
