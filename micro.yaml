@@ -169,6 +169,16 @@ switch:
     name: "Rain"
     id: rain
     optimistic: true
+    on_turn_on:
+      then:
+        - text_sensor.template.publish:
+            id: status
+            state: "Rain"
+    on_turn_off:
+      then:
+        - text_sensor.template.publish:
+            id: status
+            state: "Standby"
     
 #Real Solenoid relay outputs
   - platform: gpio
