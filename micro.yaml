@@ -204,6 +204,7 @@ switch:
         - text_sensor.template.publish:
             id: status
             state: "Standby"
+        - switch.turn_off: main
   - platform: gpio
     restore_mode: ALWAYS_OFF
     id: station2
@@ -230,6 +231,7 @@ switch:
         - text_sensor.template.publish:
             id: status
             state: "Standby"
+        - switch.turn_off: main
   - platform: gpio
     restore_mode: ALWAYS_OFF
     id: station3
@@ -256,6 +258,7 @@ switch:
         - text_sensor.template.publish:
             id: status
             state: "Standby"
+        - switch.turn_off: main
 text_sensor:
   - platform: template
     name: "Status"
@@ -330,7 +333,6 @@ sensor:
               lambda: return id(remaining_time1) == 0;
             then:
               - switch.turn_off: station1
-              - switch.turn_off: main
 
   - platform: template
     name: "${remaining_2}"
@@ -346,7 +348,6 @@ sensor:
               lambda: return id(remaining_time2) == 0;
             then:
               - switch.turn_off: station2
-              - switch.turn_off: main
 
   - platform: template
     name: "${remaining_3}"
@@ -362,7 +363,6 @@ sensor:
               lambda: return id(remaining_time3) == 0;
             then:
               - switch.turn_off: station3
-              - switch.turn_off: main
 
 interval:
   - interval: 5s
