@@ -34,7 +34,7 @@ The Device can of course be reprogrammed as you would like too, if you have ESPh
 - Web dash-board for standalone usage
 - Integration for Home Assistant 
 - Lorawan integration for remote or rental property
-# Current Version 1 Hardware 
+# Current Version 2 Hardware 
 The PCB design files can be found here https://oshwlab.com/james_6977/easy-reticulation-controller-v2
 # Retired Version 1 Hardware and Instructions
 The PCB design files can be found here https://easyeda.com/james_6977/basic-retic-controller_copy 
