@@ -3,7 +3,7 @@ The Easy-Reticulation Controller is designed to be small, simple to use, low cos
 
 I have called it a few names but have setted on Easy Reticulation controller.  Eventually I would like to make it useable stand alone off WIFI entirely  or with Home Assistant. Stand alone it would operate via Bluetooth with an App and it's time would come from a real time clock module.
 But first I would like it to work with Home Assisant nicely then I will work on stand alone model/version.
-At the moment this version is available to buy at www.egglec.com.au and also at Tindie. If purchased it will come with the lastest version of the ESPhome YAML installed which will create a AP to connect to and Captive Portal for setup on your network.
+At the moment this version is available to buy at [egglec.com.au](https://www.egglec.com.au/product-page/easy-reticulation-controller-v2). If purchased it will come with the lastest version of the ESPhome YAML installed which will create a AP to connect to and Captive Portal for setup on your network.
 # Instructions For First Time Use
 ![Easy Reticulation Controller V2](/docs/assets/images/RETICV2.jpg)
 - DO NOT EVER CONNECT TO MAIN LEVEL VOLTAGE IT IS DESIGNED FOR 24vAC safety isolated by a transfromer.
