@@ -38,13 +38,15 @@ esp8266:
 
 #Dashboard import if you want to adopt the device on your esphome dashboard
 dashboard_import:
-  package_import_url: github://jeggleston1981/easy_reticulation_controller_v2/easy_reticulation.yaml
+  package_import_url: github://jeggleston1981/easy-reticulation/easy-reticulation-esp8285.yaml@main
 
 # Set no logging on hardware UART as these pins are used by I2C bus
 logger:
   baud_rate: 0
-
+  
+# API to connect to Home Assistant
 api:
+
 #To call these services in home assistant eg: esphome.reticulation_start
 #(reticulation is the node name)
   services: 
