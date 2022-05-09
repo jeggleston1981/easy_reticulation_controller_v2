@@ -1,0 +1,584 @@
+#Created by James Eggleston 27/3/2022
+#For Circular Motion Design - Easy Reticulation Controller V2
+#www.egglec.com.au
+#www.youtube.com/c/jimmyjameschannel
+#2.0 with no real time clock module
+
+substitutions:
+  device_name: "easy-reticulation-2" #Node name
+  relay_1_name: "easy-Station 1"     #Station Names template switches
+  relay_2_name: "easy-Station 2"
+  relay_3_name: "easy-Station 3"
+  relay_4_name: "easy-Station 4"
+  duration_1: "easy-Duration S1"     #Station Duration Names
+  duration_2: "easy-Duration S2"
+  duration_3: "easy-Duration S3"
+  duration_4: "easy-Duration S4"
+  easy_status: "Easy Status"         #Text Sensor- Status Info - Name
+  solenoid_1: easy-Master
+  solenoid_2: easy-Output1
+  solenoid_3: easy-Output2
+  solenoid_4: easy-Output3
+  solenoid_5: easy-Output4
+  
+esphome:
+  name: "${device_name}"
+  project:
+    name: jimmy.easy_reticulation
+    version: "2.0"
+  on_boot:
+    priority: -100
+    then:
+      - text_sensor.template.publish:
+          id: status
+          state: "Standby"
+esp8266:
+  board: esp8285
+  restore_from_flash: true
+
+#Dashboard import if you want to adopt the device on your esphome dashboard
+dashboard_import:
+  package_import_url: github://jeggleston1981/easy_reticulation_controller_v2/easy_reticulation.yaml
+
+# Set no logging on hardware UART as these pins are used by I2C bus
+logger:
+  baud_rate: 0
+
+api:
+#To call these services in home assistant eg: esphome.reticulation_start
+#(reticulation is the node name)
+  services: 
+    - service: start #Example: esphome.reticulation_start
+      then:
+        - globals.set:
+            id: program_status
+            value: 'true'
+        - globals.set:
+            id: station_currently_running
+            value: '1'
+        - script.execute: run_program
+    - service: stop #Example: esphome.reticulation_stop
+      then:
+        - script.stop: run_program
+        - globals.set:
+            id: program_status
+            value: 'false'
+        - globals.set:
+            id: station_currently_running
+            value: '0'
+        - script.execute: stop_all_stations
+        - switch.turn_off: main_valve
+# Enable Over the Air updates with no password
+ota:
+
+# WIFI details, need to updated to create captive portal for shipping on existing products
+wifi:
+#  ssid: !secret wifi_ssid
+#  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+
+captive_portal:
+
+i2c:
+  sda: 1
+  scl: 3
+  scan: True
+
+globals:
+# Global Variable to control flow of sequences
+  - id: program_status
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: station_currently_running
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: status_led_flag
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+switch:
+#Pysical GPIO switches as disabled in HA by default as they are not necessarily
+#required
+  - platform: gpio
+    id: main_valve
+    disabled_by_default: true
+    name: ${solenoid_1}
+    pin:
+      number: 14
+  - platform: gpio
+    id: station1
+    disabled_by_default: true
+    name: ${solenoid_2}
+    pin:
+      number: 12
+  - platform: gpio
+    id: station2
+    disabled_by_default: true
+    name: ${solenoid_3}
+    pin:
+      number: 5
+  - platform: gpio
+    id: station3
+    disabled_by_default: true
+    name: ${solenoid_4}
+    pin:
+      number: 10
+  - platform: gpio
+    id: station4
+    disabled_by_default: true
+    name: ${solenoid_5}
+    pin:
+      number: 15
+
+
+#Template Switches #############################################################
+  - platform: template
+    name: "${relay_1_name}"
+    lambda: return id(station1).state;
+    optimistic: true
+    turn_on_action:
+      if:
+        condition:
+          and:
+            - lambda: 'return id(program_status) != true;'
+            - lambda: 'return id(station_currently_running) == 0;'
+        then:
+          - lambda: 'id(station_currently_running) = 1;'
+          - script.execute: run_program
+    turn_off_action:
+      if:
+        condition:
+          and:
+            - lambda: 'return id(program_status) != true;'
+            - lambda: 'return id(station_currently_running) == 1;'
+        then:
+          - lambda: 'id(station_currently_running) = 0;'
+          - script.stop: run_program
+          - script.execute: stop_all_stations
+          - switch.turn_off: main_valve
+  ##############################################################################
+  - platform: template
+    name: "${relay_2_name}"
+    lambda: return id(station2).state;
+    optimistic: true
+    turn_on_action:
+      if:
+        condition:
+          and:
+            - lambda: 'return id(program_status) != true;'
+            - lambda: 'return id(station_currently_running) == 0;'
+        then:
+          - lambda: 'id(station_currently_running) = 2;'
+          - script.execute: run_program
+    turn_off_action:
+      if:
+        condition:
+          and:
+            - lambda: 'return id(program_status) != true;'
+            - lambda: 'return id(station_currently_running) == 2;'
+        then:
+          - lambda: 'id(station_currently_running) = 0;'
+          - script.stop: run_program
+          - script.execute: stop_all_stations
+          - switch.turn_off: main_valve
+  ##############################################################################
+  - platform: template
+    name: "${relay_3_name}"
+    lambda: return id(station3).state;
+    optimistic: true
+    turn_on_action:
+      if:
+        condition:
+          and:
+            - lambda: 'return id(program_status) != true;'
+            - lambda: 'return id(station_currently_running) == 0;'
+        then:
+          - lambda: 'id(station_currently_running) = 3;'
+          - script.execute: run_program
+    turn_off_action:
+      if:
+        condition:
+          and:
+            - lambda: 'return id(program_status) != true;'
+            - lambda: 'return id(station_currently_running) == 3;'
+        then:
+          - lambda: 'id(station_currently_running) = 0;'
+          - script.stop: run_program
+          - script.execute: stop_all_stations
+          - switch.turn_off: main_valve
+  ##############################################################################
+  - platform: template
+    name: "${relay_4_name}"
+    lambda: return id(station4).state;
+    optimistic: true
+    turn_on_action:
+      if:
+        condition:
+          and:
+            - lambda: 'return id(program_status) != true;'
+            - lambda: 'return id(station_currently_running) == 0;'
+        then:
+          - lambda: 'id(station_currently_running) = 4;'
+          - script.execute: run_program
+    turn_off_action:
+      if:
+        condition:
+          and:
+            - lambda: 'return id(program_status) != true;'
+            - lambda: 'return id(station_currently_running) == 4;'
+        then:
+          - lambda: 'id(station_currently_running) = 0;'
+          - script.stop: run_program
+          - script.execute: stop_all_stations
+          - switch.turn_off: main_valve
+# Template switches that will run the station for the set duration then turn off
+# They can be manually switched off as well as long as a program is not running
+# The manual push button the the device will start a program
+################################################################################
+#External LED connected to the centre output
+  - platform: gpio
+    id: external_status_led
+    pin:
+      number: 4
+      inverted: false
+
+#Amber LED near ESP8285 Module
+
+status_led:
+  pin:
+    number: 2
+    inverted: true
+
+binary_sensor:
+#Pysical Push Buttons on PCB Board
+#  - platform: gpio
+#    name: "Spare"
+#    id: spare
+#    pin:
+#      number: 0
+#      inverted: true
+# Push Button for next station, lower output
+  - platform: gpio
+    id: next
+    pin:
+      number: 9
+      mode: INPUT_PULLUP
+      inverted: true
+    on_press:
+      then:
+        - script.execute: next_button
+
+####################################################
+
+number:
+# Duration times of stations in minutes, can be changed in HA
+  - platform: template
+    name: "${duration_1}"
+    id: s1_duration
+    icon: mdi:timer-sand
+    optimistic: true
+    initial_value: 10
+    restore_value: true
+    min_value: 0
+    max_value: 60
+    step: 1
+    
+  - platform: template
+    name: "${duration_2}"
+    id: s2_duration
+    icon: mdi:timer-sand
+    optimistic: true
+    initial_value: 10
+    restore_value: true
+    min_value: 0
+    max_value: 60
+    step: 1
+    
+  - platform: template
+    name: "${duration_3}"
+    id: s3_duration
+    icon: mdi:timer-sand
+    optimistic: true
+    initial_value: 10
+    restore_value: true
+    min_value: 0
+    max_value: 60
+    step: 1
+   
+  - platform: template
+    name: "${duration_4}"
+    id: s4_duration
+    icon: mdi:timer-sand
+    optimistic: true
+    initial_value: 10
+    restore_value: true
+    min_value: 0
+    max_value: 60
+    step: 1
+
+####################################################
+# Text Status Sensor
+text_sensor:
+  platform: template
+  name: "${easy_status}"
+  id: status
+
+####################################################
+# Scripts to run the station in sequence
+script:
+  - id: run_program
+    mode: restart
+    then:
+      - if:
+          condition:
+            and:
+              - lambda: 'return id(station_currently_running) == 1;'
+              - lambda: 'return id(s1_duration).state != 0;'
+          then:
+            - switch.turn_on: main_valve
+            - switch.turn_on: station1
+            - lambda: 'id(status_led_flag) = true;'
+            - script.execute: status_led_flash
+            - if:
+                condition:
+                  - lambda: 'return id(program_status) == true;'
+                then:
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Program Running - ${relay_1_name}"
+                else:
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Manual Run - ${relay_1_name}"
+            - logger.log: "Station 1 turned on"
+            - delay: !lambda "return (((id(s1_duration).state)*60)*1000);"
+            - switch.turn_off: station1
+            - lambda: 'id(status_led_flag) = false;'
+            - script.stop: status_led_flash
+            - logger.log: "Station 1 turned off"
+            - if:
+                condition:
+                  lambda: 'return id(program_status) == false;'
+                then:
+                  - switch.turn_off: main_valve
+                  - lambda: 'id(station_currently_running) = 0;'
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Standby"
+                else:
+                  - lambda: 'id(station_currently_running) += 1;'
+          else:
+            if:
+              condition:
+                and:
+                  - lambda: 'return id(station_currently_running) == 1;'
+                  - lambda: 'return id(s1_duration).state == 0;'
+              then:
+                - lambda: 'id(station_currently_running) += 1;'
+                - logger.log: "Station 1 duration set to 0, station not run"
+      - if:
+          condition:
+            and:
+              - lambda: 'return id(station_currently_running) == 2;'
+              - lambda: 'return id(s2_duration).state != 0;'
+          then:
+            - switch.turn_on: main_valve
+            - switch.turn_on: station2
+            - lambda: 'id(status_led_flag) = true;'
+            - script.execute: status_led_flash
+            - if:
+                condition:
+                  - lambda: 'return id(program_status) == true;'
+                then:
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Program Running - ${relay_2_name}"
+                else:
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Manual Run - ${relay_2_name}"
+            - logger.log: "Station 2 turned on"
+            - delay: !lambda "return (((id(s2_duration).state)*60)*1000);"
+            - switch.turn_off: station2
+            - lambda: 'id(status_led_flag) = false;'
+            - script.stop: status_led_flash
+            - logger.log: "Station 2 turned off"
+            - if:
+                condition:
+                  lambda: 'return id(program_status) == false;'
+                then:
+                  - switch.turn_off: main_valve
+                  - lambda: 'id(station_currently_running) = 0;'
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Standby"
+                else:
+                  - lambda: 'id(station_currently_running) += 1;'
+          else:
+            if:
+              condition:
+                and:
+                  - lambda: 'return id(station_currently_running) == 2;'
+                  - lambda: 'return id(s2_duration).state == 0;'
+              then:
+                - lambda: 'id(station_currently_running) += 1;'
+                - logger.log: "Station 2 duration set to 0, station not run"
+
+      - if:
+          condition:
+            and:
+              - lambda: 'return id(station_currently_running) == 3;'
+              - lambda: 'return id(s3_duration).state != 0;'
+          then:
+            - switch.turn_on: main_valve
+            - switch.turn_on: station3
+            - lambda: 'id(status_led_flag) = true;'
+            - script.execute: status_led_flash
+            - if:
+                condition:
+                  - lambda: 'return id(program_status) == true;'
+                then:
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Program Running - ${relay_3_name}"
+                else:
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Manual Run - ${relay_3_name}"
+            - logger.log: "Station 3 turned on"
+            - delay: !lambda "return (((id(s3_duration).state)*60)*1000);"
+            - switch.turn_off: station3
+            - lambda: 'id(status_led_flag) = false;'
+            - script.stop: status_led_flash
+            - logger.log: "Station 3 turned off"
+            - if:
+                condition:
+                  lambda: 'return id(program_status) == false;'
+                then:
+                  - switch.turn_off: main_valve
+                  - lambda: 'id(station_currently_running) = 0;'
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Standby"
+                else:
+                  - lambda: 'id(station_currently_running) += 1;'
+          else:
+            if:
+              condition:
+                and:
+                  - lambda: 'return id(station_currently_running) == 3;'
+                  - lambda: 'return id(s3_duration).state == 0;'
+              then:
+                - lambda: 'id(station_currently_running) += 1;'
+                - logger.log: "Station 3 duration set to 0, station not run"
+
+      - if:
+          condition:
+            and:
+              - lambda: 'return id(station_currently_running) == 4;'
+              - lambda: 'return id(s4_duration).state != 0;'
+          then:
+            - switch.turn_on: main_valve
+            - switch.turn_on: station4
+            - lambda: 'id(status_led_flag) = true;'
+            - script.execute: status_led_flash
+            - if:
+                condition:
+                  - lambda: 'return id(program_status) == true;'
+                then:
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Program Running - ${relay_4_name}"
+                else:
+                  - text_sensor.template.publish:
+                      id: status
+                      state: "Manual Run - ${relay_4_name}"
+            - logger.log: "Station 4 turned on"
+            - delay: !lambda "return (((id(s4_duration).state)*60)*1000);"
+            - switch.turn_off: station4
+            - lambda: 'id(status_led_flag) = false;'
+            - script.stop: status_led_flash
+            - switch.turn_off: main_valve
+            - logger.log: "Station 4 turned off"
+            - text_sensor.template.publish:
+                id: status
+                state: "Standby"
+            - lambda: 'id(program_status) = false;'
+          else:
+            if:
+              condition:
+                and:
+                  - lambda: 'return id(station_currently_running) == 4;'
+                  - lambda: 'return id(s4_duration).state == 0;'
+              then:
+                - switch.turn_off: main_valve
+                - text_sensor.template.publish:
+                    id: status
+                    state: "Standby"
+                - lambda: 'id(program_status) = false;'
+                - logger.log: "Station 4 duration set to 0, station not run, main valve shut"
+                
+
+  - id: next_button
+    mode: restart
+    then:
+      - lambda: 'id(program_status) = true;'
+      - if:
+          condition:
+            lambda: 'return id(station_currently_running) != 4;'
+          then:
+            - lambda: 'id(station_currently_running) += 1;'
+            - script.stop: run_program
+            - script.execute: stop_all_stations
+            - script.execute: run_program
+            - if:
+                condition:
+                  and:
+                    - lambda: 'return id(s4_duration).state == 0;'
+                    - lambda: 'return id(station_currently_running) == 4;'
+                then:
+                  - lambda: 'id(station_currently_running) = 0;'
+                  - lambda: 'id(program_status) = false;'
+                  - script.stop: run_program
+                  - script.execute: stop_all_stations
+                  - switch.turn_off: main_valve
+          else:
+            - lambda: 'id(station_currently_running) = 0;'
+            - lambda: 'id(program_status) = false;'
+            - script.stop: run_program
+            - script.execute: stop_all_stations
+            - switch.turn_off: main_valve
+
+  - id: stop_all_stations
+    then:
+      - switch.turn_off: station1
+      - switch.turn_off: station2
+      - switch.turn_off: station3
+      - switch.turn_off: station4
+      - lambda: 'id(status_led_flag) = false;'
+      - script.stop: status_led_flash
+      - switch.turn_on: external_status_led
+      - switch.turn_off: external_status_led
+      - text_sensor.template.publish:
+          id: status
+          state: "Standby"
+
+  - id: status_led_flash
+    then:
+      - while:
+          condition:
+            - lambda: 'return id(status_led_flag) == true;'
+          then:
+            - repeat:
+                count: !lambda "return id(station_currently_running);"
+                then:
+                  - switch.turn_on: external_status_led
+                  - delay: 200ms
+                  - switch.turn_off: external_status_led
+                  - delay: 200ms
+            - delay: 2s
