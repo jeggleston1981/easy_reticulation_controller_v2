@@ -6,7 +6,7 @@ But first I would like it to work with Home Assisant nicely then I will work on 
 At the moment this version is available to buy at [egglec.com.au](https://www.egglec.com.au/product-page/easy-reticulation-controller-v2). If purchased it will come with the lastest version of the ESPhome YAML installed which will create a AP to connect to and Captive Portal for setup on your network.
 # Instructions For First Time Use
 ![Easy Reticulation Controller V2](/docs/assets/images/RETICV2.jpg)
-- DO NOT EVER CONNECT TO MAIN LEVEL VOLTAGE IT IS DESIGNED FOR 24vAC safety isolated by a transfromer.
+- DO NOT EVER CONNECT TO MAINS LEVEL VOLTAGE IT IS DESIGNED FOR 24vAC safety isolated by a transfromer.
 - Connect the device to a 24v AC power supply as is usual for reticulation systems
 - Once connected the default duration for each station is 10 minutes
 - If a momentary push button NO is connect to GPIO 9 on the left handside and ground this will start the program and cycle to the next station
